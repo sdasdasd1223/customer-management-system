@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="app-base-path" content="{{ request.script_root }}">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <meta name="next-url" content="{{ next_url }}">
+  <title>等待身分分配 · 簽單台</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <script src="{{ url_for('static', filename='waiting.js') }}" defer></script>
+</head>
+<body class="login-body">
+  <main class="login-card waiting-card">
+    <div class="login-brand">簽單台<span>.</span></div>
+    <div class="login-eyebrow">已完成飛書帳號驗證</div>
+    <h1>等待管理員分配身分</h1>
+    <p class="login-intro">你好，{{ user.name }}。管理員需要先將你分配為「業務員」或「管理員」，才可進入系統。</p>
+    <div class="login-message">目前尚未開放客戶、合同及附件資料。分配完成後，此頁會自動進入系統。</div>
+    <p id="waiting-status" class="small muted" role="status" aria-live="polite">正在等待身分分配…</p>
+    <div class="row waiting-actions">
+      <button id="check-status" class="btn btn-primary" type="button">重新檢查身分</button>
+      <button id="waiting-logout" class="btn btn-secondary" type="button">登出並切換帳號</button>
+    </div>
+    <div class="login-footer">若一直停留在此頁，請聯絡公司管理員完成分配。</div>
+  </main>
+</body>
+</html>

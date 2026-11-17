@@ -1,0 +1,24 @@
+[Unit]
+Description=Signing money customer and contract system
+After=network.target
+
+[Service]
+Type=simple
+User=signing-money
+Group=signing-money
+WorkingDirectory=/opt/signing-money/app
+EnvironmentFile=/etc/signing-money/app.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/signing-money/venv/bin/gunicorn --bind 127.0.0.1:18080 --workers 1 --threads 4 --timeout 120 --access-logfile - --access-logformat "%%(h)s %%(t)s %%(m)s %%(U)s %%(H)s %%(s)s %%(b)s" wsgi:app
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/signing-money
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

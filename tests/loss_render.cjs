@@ -1,0 +1,58 @@
+const fs = require('node:fs');
+const vm = require('node:vm');
+const assert = require('node:assert/strict');
+const source = fs.readFileSync('static/app.js','utf8').replace(/\nstart\(\);\s*$/, '\n');
+const elements = new Map();
+const doc = {querySelector(s) { if (s.startsWith('meta')) return null; if (!elements.has(s)) elements.set(s,{innerHTML:'',classList:{toggle(){}}}); return elements.get(s); },addEventListener(){}, body:{classList:{toggle(){}}}};
+const context = vm.createContext({document:doc, window:{addEventListener(){}},location:{hash:'#/customers'},setTimeout(){},clearTimeout(){},URLSearchParams,console});
+vm.runInContext(source,context);
+const run = s => vm.runInContext(s,context);
+(async()=>{
+  const state = await (await fetch('http://127.0.0.1:8017/api/v1/state')).json();
+  run(`data=${JSON.stringify(state)};authInfo={user:{role:'admin',name:'測試'}};`);
+  const html = run('renderDetail(data.customers[0].id)');
+  assert(html.includes('客戶流失／移入流失池'));
+  run("modal={type:'lose',id:data.customers[0].id};renderModal();");
+  assert(elements.get('#modal-root').innerHTML.includes('流失原因（必填）'));
+  assert(elements.get('#modal-root').innerHTML.includes('required maxlength="2000"'));
+  // 僅測試純渲染，資料為記憶體中的副本，不更動任何使用者資料。
+  run("data.customers[0].stage=0;data.customers[0].rep_id=null;data.customers[0].lost_at='2026-11-03';data.customers[0].loss_reason='<流失原因>';data.customers[0].stage_name='客戶流失';data.contracts[0].status='lost';data.contracts[0].loss_reason='<流失原因>';data.summary.open_leads=0;");
+  const returned=run('renderDetail(data.customers[0].id)');
+  assert(returned.includes('返回流失池'));
+  assert(returned.includes('href="#/leads/lost"'));
+  assert(returned.includes('重新分配'));
+  assert(returned.includes('&lt;流失原因&gt;'));
+  assert(!returned.includes('data-action="new-contract"'));
+  for (const filter of ['open', 'all']) {
+    run(`leadFilter='${filter}';`);
+    assert(!run('renderLeads()').includes('流失功能測試客戶'));
+  }
+  run("location.hash='#/leads/lost';");
+  const lost=run('renderLeads()');
+  assert(lost.includes('<h1>線索池</h1>'));
+  assert.deepEqual([...lost.matchAll(/data-action="lead-filter" data-id="([^"]+)"/g)].map(m=>m[1]), ['open','assigned','all','lost']);
+  assert(lost.includes('data-id="lost" aria-pressed="true">流失池 1'));
+  assert(lost.includes('流失功能測試客戶'));
+  assert(lost.includes('查看歷史紀錄'));
+  assert(lost.includes('重新分配'));
+  assert(lost.includes('&lt;流失原因&gt;'));
+  const viewer=run('renderViewer(data.contracts[0])');
+  assert(viewer.includes('合同流失'));
+  assert(!viewer.includes('id="upload-form"'));
+  assert(!viewer.includes('data-action="edit-contract"'));
+  run('modal=null;render();');
+  const nav=elements.get('#app').innerHTML.split('</nav>')[0];
+  assert(!nav.includes('流失池'));
+  assert(nav.includes('href="#/leads" class="nav-link active"'));
+  run("location.hash='#/lost';");
+  assert(run('renderLeads()').includes('data-id="lost" aria-pressed="true"'));
+  run("authInfo.user.role='sales';");
+  assert(!run('renderLeads()').includes('流失功能測試客戶'));
+  assert(!run('renderLeads()').includes('data-id="lost"'));
+  run("authInfo.user.role='admin';");
+  run('renderCustomerRows();');
+  assert(!elements.get('#customer-results').innerHTML.includes('流失功能測試客戶'));
+  run('data.customers[0].stage=1;');
+  assert(!run('renderLeads()').includes('流失功能測試客戶'));
+  console.log('流失池分流、重新分配與唯讀合同渲染檢查通過');
+})().catch(e=>{console.error(e);process.exitCode=1;});

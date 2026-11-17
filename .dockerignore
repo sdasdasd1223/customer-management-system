@@ -1,0 +1,17 @@
+.venv
+.idea
+.codex-review
+data
+backups
+tests
+__pycache__
+*.html
+!static/*.html
+*.zip
+*.log
+.git
+.test-data
+.test-artifacts
+.env
+.env.*
+!.env.example

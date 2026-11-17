@@ -1,0 +1,22 @@
+# 替換 server_name 與憑證路徑；僅用於已配置 HTTPS 的伺服器。
+# 已有飛書登入；下方來源限制可依公司實際網路策略設定。
+server {
+    listen 443 ssl;
+    server_name signing.example.com;
+    ssl_certificate /etc/letsencrypt/live/signing.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/signing.example.com/privkey.pem;
+    client_max_body_size 21m;
+
+    # 請以實際允許的公司／使用者網路替換。
+    allow 127.0.0.1;
+    deny all;
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_read_timeout 120s;
+    }
+}

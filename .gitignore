@@ -1,0 +1,14 @@
+.venv/
+.idea/
+.codex-review/
+__pycache__/
+*.pyc
+data/
+backups/
+*.log
+.env
+.env.*
+!.env.example
+.test-data/
+.test-artifacts/
+exports/
